@@ -12,11 +12,10 @@ from django.http import JsonResponse
 
 # --- Helper Functions and Constants ---
 
-# It's a good practice to manage API keys securely.
+
 # Instead of hardcoding them, they should be loaded from environment variables.
 # The os.getenv() function safely retrieves them. A default key can be provided for development.
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', 'd0v97a1r01qmg3ul0hf0d0v97a1r01qmg3ul0hfg')
-ALPHA_VANTAGE_API_KEY = os.getenv('ALPHA_VANTAGE_API_KEY', 'PA8D5EK6E0LBXS6X')
 MARKETAUX_API_KEY = os.getenv('MARKETAUX_API_KEY', '5u3JeErfoIuEZ27t3yGED8kIRVS58Gsa1VjeVJVq')
 NEWS_GENERAL_API_KEY = os.getenv('NEWS_GENERAL_API', 'ef5d59f87eaa40bf8329f15367deb206')
 
@@ -24,32 +23,16 @@ NEWS_GENERAL_API_KEY = os.getenv('NEWS_GENERAL_API', 'ef5d59f87eaa40bf8329f15367
 # --- View Functions ---
 
 def metal_price(request):
-    """
-    Fetches daily time series data for a given stock symbol from Alpha Vantage.
-    This can be used for metals or any other traded symbol.
-
-    Query Parameters:
-        - symbol (str): The stock symbol to look up (e.g., 'RELIANCE'). Defaults to 'RELIANCE'.
-
-    Returns:
-        JsonResponse: A JSON object containing the time series data or an error message.
-    """
-    # Get the stock symbol from the request's query parameters. Default to 'RELIANCE' if not provided.
-    symbol = request.GET.get('symbol', 'RELIANCE')
-
-    # Construct the API URL for Alpha Vantage.
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={ALPHA_VANTAGE_API_KEY}'
-
+    api_key = os.getenv('ALPHA_VANTAGE_API_KEY', 'PA8D5EK6E0LBXS6X')
+    symbol = request.GET.get('name','GLD')
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
     try:
-        # Make the GET request to the Alpha Vantage API.
         response = requests.get(url)
-        # Raise an exception for bad status codes (4xx or 5xx).
         response.raise_for_status()
         data = response.json()
         return JsonResponse(data)
     except requests.RequestException as e:
-        # Handle network-related errors (e.g., connection timeout).
-        return JsonResponse({'error': f'API request failed: {e}'}, status=500)
+        return JsonResponse({'error': str(e)}, status=500)
 
 
 def top_stocks(request):
