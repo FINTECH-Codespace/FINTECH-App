@@ -6,5 +6,7 @@ urlpatterns = [
     path('top_stocks/',views.top_stocks, name='top_stocks'),
     path('stocks/',views.stock_details, name='stocks'),
     path('INstocks/',views.indian_stocks, name='news'),
+    path('news/',views.general_news, name='news'),
+    path('Silver/',views.silver_price, name='Silver'),
 
 ]

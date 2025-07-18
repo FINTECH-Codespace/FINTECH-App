@@ -18,16 +18,16 @@ from django.http import JsonResponse
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', 'd0v97a1r01qmg3ul0hf0d0v97a1r01qmg3ul0hfg')
 MARKETAUX_API_KEY = os.getenv('MARKETAUX_API_KEY', '5u3JeErfoIuEZ27t3yGED8kIRVS58Gsa1VjeVJVq')
 NEWS_GENERAL_API_KEY = os.getenv('NEWS_GENERAL_API', 'ef5d59f87eaa40bf8329f15367deb206')
+api_key = os.getenv('ALPHA_VANTAGE_API_KEY', 'PA8D5EK6E0LBXS6X')
 
 
 # --- View Functions ---
 
 def metal_price(request):
-    api_key = os.getenv('ALPHA_VANTAGE_API_KEY', 'PA8D5EK6E0LBXS6X')
     symbol = request.GET.get('name','GLD')
-    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
+    url1 = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
     try:
-        response = requests.get(url)
+        response = requests.get(url1)
         response.raise_for_status()
         data = response.json()
         return JsonResponse(data)
@@ -192,4 +192,15 @@ def general_news(request):
     except requests.RequestException as e:
         # Handle request-related errors.
         return JsonResponse({'error': f'Failed to fetch news: {e}'}, status=500)
+def silver_price(request):
+    symbol = 'XAG'
+    url = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return JsonResponse(data)
+    except requests.RequestException as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
