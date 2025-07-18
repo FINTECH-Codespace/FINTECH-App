@@ -8,5 +8,5 @@ urlpatterns = [
     path('INstocks/',views.indian_stocks, name='news'),
     path('news/',views.general_news, name='news'),
     path('Silver/',views.silver_price, name='Silver'),
-
+    path('home-loans/', views.home_loan_rates, name='home_loan_rates'),
 ]

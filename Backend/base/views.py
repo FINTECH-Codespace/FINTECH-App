@@ -9,7 +9,7 @@ from datetime import timedelta, datetime
 from nsepython import nse_eq  # Library for fetching data from the National Stock Exchange (NSE)
 import requests
 from django.http import JsonResponse
-
+from .utils import get_home_loans_data
 # --- Helper Functions and Constants ---
 
 
@@ -181,7 +181,7 @@ def general_news(request):
         JsonResponse: A JSON object containing a list of news articles or an error message.
     """
     # Construct the URL for NewsAPI's top headlines' endpoint.
-    url = f"https://newsapi.org/v2/top-headlines?country=in&category=business&apiKey={NEWS_GENERAL_API_KEY}"
+    url = f"https://newsapi.org/v2/top-headlines?country=us&category=business&apiKey={NEWS_GENERAL_API_KEY}"
 
     try:
         # Make the GET request.
@@ -202,5 +202,13 @@ def silver_price(request):
         return JsonResponse(data)
     except requests.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
+
+
+
+def home_loan_rates(request):
+    file_path = "C:\\Users\\Hp\\Downloads\\home_loan_interest_history.xlsx"
+    data = get_home_loans_data(file_path)
+    return JsonResponse(data, safe=False)
+
 
 
