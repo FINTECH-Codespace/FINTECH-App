@@ -103,6 +103,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.8,
         shadowRadius: 5,
       },
+      android: {
+        elevation: 6,
+      },
     }),
   },
   cardButtonText: {

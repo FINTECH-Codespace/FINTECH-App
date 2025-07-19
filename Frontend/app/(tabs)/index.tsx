@@ -49,10 +49,7 @@ export default function Home() {
             />
           </View>
 
-          {/* Investment Options */}
           <InvestGrid />
-
-          {/* Cards and News */}
           <GlassCardList />
           <NewsList />
         </View>

@@ -1,8 +1,16 @@
 import React from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Platform } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Dimensions,
+  Platform,
+} from "react-native";
 import * as Animatable from "react-native-animatable";
 import { FontAwesome5 } from "@expo/vector-icons";
 import { LinearGradient } from "expo-linear-gradient";
+import { useRouter } from "expo-router";
 
 const COLORS = {
   background: "#e6f0ff",
@@ -17,15 +25,34 @@ const COLORS = {
 const investOptions = [
   { label: "Stocks", icon: "chart-line" },
   { label: "FDs", icon: "university" },
-  { label: "Gold", icon: "coins" },
-  { label: "Silver", icon: "medal" },
-  { label: "Interest", icon: "percentage" },
+  { label: "Metal", icon: "coins" },
   { label: "Loan", icon: "hand-holding-usd" },
   { label: "Rates", icon: "chart-bar" },
   { label: "Mutuals", icon: "project-diagram" },
 ];
 
 const InvestGrid = () => {
+  const router = useRouter();
+
+  const handlePress = (label: string) => {
+    // You can add different routes per label if needed
+    if (label === "Stocks") {
+      router.push("../Stocks");
+    } 
+    else if (label === "Metal") {
+      router.push("../Metals");
+    } 
+    // else if (label === "FDs") {
+    //   router.push("/FDs");
+    // } else if (label === "Loan") {
+    //   router.push("/Loan");
+    // } else if (label === "Rates") {
+    //   router.push("/Rates");
+    // } else if (label === "Mutuals") {
+    //   router.push("/Mutuals");
+    // }
+  };
+
   return (
     <View style={styles.section}>
       <Text style={styles.sectionTitle}>Where do you want to invest?</Text>
@@ -38,7 +65,10 @@ const InvestGrid = () => {
             useNativeDriver
             style={styles.cardWrapper}
           >
-            <TouchableOpacity style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              onPress={() => handlePress(item.label)}
+            >
               <LinearGradient
                 colors={["#ffffff90", "#ffffff00"]}
                 start={{ x: 0, y: 0 }}
@@ -74,7 +104,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   cardWrapper: {
-    width: "23%",
+    width: "30%",
     marginBottom: 20,
   },
   card: {
@@ -84,10 +114,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     overflow: "hidden",
-
     borderColor: COLORS.border,
     borderWidth: 1.5,
-
     ...Platform.select({
       ios: {
         shadowColor: COLORS.shadow,
