@@ -5,24 +5,22 @@
 #
 import json
 import os
+from pathlib import Path
 from datetime import timedelta, datetime
+
+from dotenv import load_dotenv
 from nsepython import nse_eq  # Library for fetching data from the National Stock Exchange (NSE)
 import requests
 from django.http import JsonResponse
 from .utils import get_home_loans_data
-# --- Helper Functions and Constants ---
-
-
+BASE_DIR = Path(__file__).resolve().parent.parent
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 # Instead of hardcoding them, they should be loaded from environment variables.
 # The os.getenv() function safely retrieves them. A default key can be provided for development.
-FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY', 'd0v97a1r01qmg3ul0hf0d0v97a1r01qmg3ul0hfg')
-MARKETAUX_API_KEY = os.getenv('MARKETAUX_API_KEY', '5u3JeErfoIuEZ27t3yGED8kIRVS58Gsa1VjeVJVq')
-NEWS_GENERAL_API_KEY = os.getenv('NEWS_GENERAL_API', 'ef5d59f87eaa40bf8329f15367deb206')
-api_key = os.getenv('ALPHA_VANTAGE_API_KEY', 'PA8D5EK6E0LBXS6X')
-
-
-# --- View Functions ---
-
+FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
+MARKETAUX_API_KEY = os.getenv('MARKETAUX_API_KEY')
+NEWS_GENERAL_API_KEY = os.getenv('NEWS_GENERAL_API')
+api_key = os.getenv('ALPHA_VANTAGE_API_KEY')
 def metal_price(request):
     symbol = request.GET.get('name','GLD')
     url1 = f'https://www.alphavantage.co/query?function=TIME_SERIES_DAILY&symbol={symbol}&apikey={api_key}'
@@ -33,8 +31,6 @@ def metal_price(request):
         return JsonResponse(data)
     except requests.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
-
-
 def top_stocks(request):
     """
     Fetches the list of top gainers from the NSE India website.
@@ -67,8 +63,6 @@ def top_stocks(request):
     except requests.RequestException as e:
         # Handle any request-related errors.
         return JsonResponse({'error': f'Failed to fetch data from NSE: {e}'}, status=500)
-
-
 def stock_details(request):
     """
     Fetches comprehensive details for a given international stock symbol from Finnhub.
@@ -115,8 +109,6 @@ def stock_details(request):
             return JsonResponse({'error': str(e)}, status=500)
 
     return JsonResponse({'error': 'Only GET method allowed'}, status=405)
-
-
 def indian_stocks(request):
     """
     Fetches details and news for a given Indian stock symbol (NSE).
@@ -171,8 +163,6 @@ def indian_stocks(request):
     # If the request method is not GET, return None, which will result in an error.
     # A more explicit response is better.
     return JsonResponse({'error': 'Only GET method allowed'}, status=405)
-
-
 def general_news(request):
     """
     Fetches top business headlines from India using the NewsAPI.
@@ -203,12 +193,74 @@ def silver_price(request):
     except requests.RequestException as e:
         return JsonResponse({'error': str(e)}, status=500)
 
-
-
 def home_loan_rates(request):
     file_path = "C:\\Users\\Hp\\Downloads\\home_loan_interest_history.xlsx"
     data = get_home_loans_data(file_path)
     return JsonResponse(data, safe=False)
+HEADERS = {
+    "User-Agent": "Mozilla/5.0",
+    "Accept-Language": "en-US,en;q=0.9",
+    "Accept-Encoding": "gzip, deflate, br"
+}
+def search_stock(request):
+    """
+        Handles stock search using NSE India's autocomplete API.
+
+        Workflow:
+        1. Get the search query from the request (parameter `q`).
+        2. If query is empty, return an empty JSON response.
+        3. Make a session request to NSE India homepage to initialize cookies (required by NSE API).
+        4. Call NSE's autocomplete API: https://www.nseindia.com/api/search/autocomplete?q=<query>.
+        5. Extract relevant fields (symbol and name) from the response.
+        6. Return a JSON array of matching stocks.
+
+        Request:
+            GET /search_stock?q=<search_text>
+
+        Query Parameters:
+            q (string): Stock symbol or company name to search for.
+
+        Response:
+            JSON array of objects:
+            [
+                {
+                    "symbol": "RELIANCE",
+                    "name": "Reliance Industries Limited"
+                },
+                ...
+            ]
+        Example:
+            Input:  /search_stock?q=reliance
+            Output:
+            [
+                {"symbol": "RELIANCE", "name": "Reliance Industries Limited"},
+                {"symbol": "RELINFRA", "name": "Reliance Infrastructure Limited"}
+            ]
+        Notes:
+            - NSE API requires valid headers and session.
+            - HEADERS variable should include 'User-Agent', 'Accept-Language', etc.
+            - If NSE API is down or response changes, handle gracefully.
+        """
+    query = request.GET.get("q", "")
+    if not query:
+        return JsonResponse([], safe=False)
+    url = f"https://www.nseindia.com/api/search/autocomplete?q={query}"
+    session = requests.Session()
+    session.get("https://www.nseindia.com", headers=HEADERS)
+    response = session.get(url, headers=HEADERS)
+    data = response.json()
+    results = [
+        {
+            "symbol": item.get("symbol"),
+            "name": item.get("name")
+        }
+        for item in data.get("symbols", [])
+        if item.get("symbol") and item.get("symbol") != "-"
+    ]
+    return JsonResponse(results, safe=False)
+
+
+
 
 
 
