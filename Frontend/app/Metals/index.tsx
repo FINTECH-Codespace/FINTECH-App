@@ -38,8 +38,8 @@ const MetalScreen = () => {
     setError(false);
     const url =
       selectedMetal === "gold"
-        ? "http://192.168.1.7:8000/home/metal_price/"
-        : "http://192.168.1.7:8000/home/Silver/";
+        ? "http:// 192.168.134.93:8000/home/metal_price/"
+        : "http:// 192.168.134.93:8000/home/Silver/";
 
     fetch(url)
       .then((res) => {

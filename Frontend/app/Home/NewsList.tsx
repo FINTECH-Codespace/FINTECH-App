@@ -30,7 +30,7 @@ const NewsList = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetch("http://192.168.1.7:8000/home/news/")
+    fetch("http:// 192.168.134.93:8000/home/news/")
       .then((res) => res.json())
       .then((json) => setNews(json.articles || []))
       .catch((err) => console.error("Failed to fetch news:", err))

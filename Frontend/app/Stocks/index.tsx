@@ -31,7 +31,7 @@ const StockScreen = () => {
   }, []);
 
   useEffect(() => {
-    fetch("http://192.168.1.7:8000/home/top_stocks/")
+    fetch("http:// 192.168.134.93:8000/home/top_stocks/")
       .then((res) => {
         if (!res.ok) {
           console.error("HTTP Error:", res.status, res.statusText);
