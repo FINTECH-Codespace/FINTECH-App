@@ -38,6 +38,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'base.apps.BaseConfig',
+    'user',
 ]
 
 MIDDLEWARE = [
@@ -75,12 +76,24 @@ WSGI_APPLICATION = 'Fintech.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
 
+# Keep SQLite for Django admin and sessions
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+
+# MongoDB Configuration using MongoEngine
+import mongoengine
+
+# Connect to MongoDB
+mongoengine.connect(
+    db='fintech_db',
+    host='mongodb://localhost:27017/'
+    # For MongoDB Atlas (cloud), use:
+    # host='mongodb+srv://username:password@cluster.mongodb.net/fintech_db?retryWrites=true&w=majority'
+)
 
 
 # Password validation
