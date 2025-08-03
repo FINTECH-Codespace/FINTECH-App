@@ -7,239 +7,252 @@ import {
   ScrollView,
   TextInput,
 } from "react-native";
-import { useNavigation, useRouter } from "expo-router";
-
-type Option = { label: string; score: number };
-
-type QuestionWithOptions = {
-  category: string;
-  question: string;
-  options: Option[];
-  manualInput?: false;
-  key?: undefined;
-};
-
-type QuestionWithManualInput = {
-  category: string;
-  question: string;
-  manualInput: true;
-  key: "income" | "saving";
-  options?: undefined;
-};
-
-type Question = QuestionWithOptions | QuestionWithManualInput;
-
-const questions: Question[] = [
-  {
-    category: "Age",
-    question: "What is your age?",
-    options: [
-      { label: "Under 30", score: 5 },
-      { label: "30–50", score: 3 },
-      { label: "Over 50", score: 1 },
-    ],
-  },
-  {
-    category: "Income",
-    question: "What is your annual income?",
-    manualInput: true,
-    key: "income",
-  },
-  {
-    category: "Investment Horizon",
-    question: "How many years do you plan to invest?",
-    options: [
-      { label: "10+ years", score: 5 },
-      { label: "5–10 years", score: 3 },
-      { label: "≤ 5 years", score: 1 },
-    ],
-  },
-  {
-    category: "Financial Goals",
-    question: "What is the main goal of this investment?",
-    options: [
-      { label: "Long-term growth", score: 5 },
-      { label: "Balanced growth + safety", score: 3 },
-      { label: "Capital preservation", score: 1 },
-    ],
-  },
-  {
-    category: "Risk Preference",
-    question: "How would you feel if your investment dropped 20% in a year?",
-    options: [
-      { label: "No worries", score: 5 },
-      { label: "Concerned, but I’ll wait", score: 3 },
-      { label: "I'll sell", score: 1 },
-    ],
-  },
-  {
-    category: "Experience",
-    question: "How familiar are you with investments?",
-    options: [
-      { label: "Very experienced", score: 5 },
-      { label: "Some experience", score: 3 },
-      { label: "No experience", score: 1 },
-    ],
-  },
-  {
-    category: "Savings",
-    question: "What’s your average monthly savings after expenses?",
-    manualInput: true,
-    key: "saving",
-  },
-];
+import { useNavigation, useRouter, useLocalSearchParams } from "expo-router";
+import {
+  level1Questions,
+  secondaryLevelQuestions,
+  level3Questions,
+  Question,
+  Option,
+} from "./data";
 
 export default function QuizScreen() {
   const navigation = useNavigation();
   const router = useRouter();
+  const { level = "1", previousAnswers = "[]" } = useLocalSearchParams();
 
+  const currentLevel = parseInt(level as string);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState<number[]>([]);
+  const [selectedAnswers, setSelectedAnswers] = useState<string[]>([]);
+  const [allPreviousAnswers, setAllPreviousAnswers] = useState<any[]>([]);
   const [inputData, setInputData] = useState<{
     income: string;
     saving: string;
+    currentAge: string;
+    targetGoalAge: string;
+    goalCostToday: string;
+    profileHealthSummary: string;
   }>({
     income: "",
     saving: "",
+    currentAge: "",
+    targetGoalAge: "",
+    goalCostToday: "",
+    profileHealthSummary: "",
   });
-  const [computedOptions, setComputedOptions] = useState<Option[]>([]);
 
-  const currentQuestion = questions[currentIndex];
+  // Get questions based on current level
+  const getQuestionsForLevel = (level: number): Question[] => {
+    switch (level) {
+      case 1:
+        return level1Questions;
+      case 2:
+        return secondaryLevelQuestions;
+      case 3:
+        return level3Questions;
+      default:
+        return level1Questions;
+    }
+  };
+
+  const currentQuestions = getQuestionsForLevel(currentLevel);
+  const currentQuestion = currentQuestions[currentIndex];
 
   useLayoutEffect(() => {
     navigation.setOptions({
-      headerTitle: "Investment Quiz",
+      headerTitle: `Investment Quiz - Level ${currentLevel}`,
       headerBackTitleVisible: false,
       headerStyle: { backgroundColor: "#001D39" },
       headerTintColor: "#EDF4FB",
     });
-  }, []);
+  }, [currentLevel]);
+
+  useEffect(() => {
+    // Parse previous answers if coming from a previous level
+    try {
+      const parsed = JSON.parse(previousAnswers as string);
+      setAllPreviousAnswers(parsed);
+    } catch (error) {
+      setAllPreviousAnswers([]);
+    }
+  }, [previousAnswers]);
 
   useEffect(() => {
     if ("key" in currentQuestion && currentQuestion.key === "saving") {
       const income = parseInt(inputData.income);
-      if (!isNaN(income)) {
-        const high = Math.round(income * 0.3);
-        const mid = Math.round(income * 0.2);
-        const low = Math.round(income * 0.1);
-        setComputedOptions([
-          { label: `≥ ₹${high}`, score: 3 },
-          { label: `₹${mid}–${high}`, score: 2 },
-          { label: `< ₹${mid}`, score: 1 },
-        ]);
+      const saving = parseInt(inputData.saving);
+  
+      if (!isNaN(income) && !isNaN(saving) && income > 0) {
+        const savingRatio = saving / income;
+  
+        let score = 1;
+        if (savingRatio >= 0.3) score = 3;
+        else if (savingRatio >= 0.2) score = 2;
+  
+        const updatedAnswers = [...answers];
+        updatedAnswers[currentIndex] = score;
+        setAnswers(updatedAnswers);
+
+        const updatedSelectedAnswers = [...selectedAnswers];
+        updatedSelectedAnswers[currentIndex] = `₹${saving}`;
+        setSelectedAnswers(updatedSelectedAnswers);
       }
     }
-  }, [currentIndex, inputData.income]);
+  }, [currentIndex, inputData.income, inputData.saving]);
 
-  const handleOptionSelect = (score: number) => {
+  const handleOptionSelect = (score: number, optionLabel: string) => {
     const updatedAnswers = [...answers];
     updatedAnswers[currentIndex] = score;
     setAnswers(updatedAnswers);
+
+    const updatedSelectedAnswers = [...selectedAnswers];
+    updatedSelectedAnswers[currentIndex] = optionLabel;
+    setSelectedAnswers(updatedSelectedAnswers);
   };
 
   const handleNext = () => {
-    if (currentIndex < questions.length - 1) {
+    if (currentIndex < currentQuestions.length - 1) {
       setCurrentIndex(currentIndex + 1);
     }
   };
 
   const handleSubmit = () => {
     const totalScore = answers.reduce((sum, score) => sum + score, 0);
+    
+    // Prepare current level answers
+    const currentLevelAnswers = currentQuestions.map((question, index) => ({
+      level: currentLevel,
+      questionId: question.id,
+      category: question.category,
+      question: question.question,
+      selectedAnswer: selectedAnswers[index] || "",
+      score: answers[index] || 0,
+    }));
+
+    // Combine with all previous answers
+    const allAnswers = [...allPreviousAnswers, ...currentLevelAnswers];
+
     router.push({
       pathname: "/Investment/result",
       params: {
         score: totalScore.toString(),
         income: inputData.income || "0",
         saving: inputData.saving || "0",
+        currentAge: inputData.currentAge || "0",
+        targetGoalAge: inputData.targetGoalAge || "0",
+        goalCostToday: inputData.goalCostToday || "0",
+        profileHealthSummary: inputData.profileHealthSummary || "",
+        level: currentLevel.toString(),
+        allAnswers: JSON.stringify(allAnswers),
       },
     });
   };
 
-  const getScoreFromManualInput = (value: string, key: "income" | "saving") => {
+  function isManualInputQuestion(
+    question: Question
+  ): question is Question & { key: string } {
+    return question.manualInput === true && typeof question.key === "string";
+  }
+
+  const getScoreFromManualInput = (value: string, key: string) => {
     const v = parseInt(value);
     if (isNaN(v)) return 0;
 
-    const min = key === "income" ? 200000 : 20000;
-    const max = key === "income" ? 2000000 : 50000;
+    if (key === "income") {
+      const min = 200000;
+      const max = 2000000;
+      if (v <= min) return 1;
+      if (v >= max) return 5;
+      return Math.round(((v - min) / (max - min)) * 4 + 1);
+    }
+    
+    if (key === "saving") {
+      const min = 20000;
+      const max = 50000;
+      if (v <= min) return 1;
+      if (v >= max) return 5;
+      return Math.round(((v - min) / (max - min)) * 4 + 1);
+    }
 
-    if (v <= min) return 1;
-    if (v >= max) return 5;
+    // For other manual inputs, return a default score
+    return 3;
+  };
 
-    return Math.round(((v - min) / (max - min)) * 4 + 1);
+  const handleManualInputChange = (text: string, key: string) => {
+    setInputData({ ...inputData, [key]: text });
+    
+    const updatedSelectedAnswers = [...selectedAnswers];
+    updatedSelectedAnswers[currentIndex] = text;
+    setSelectedAnswers(updatedSelectedAnswers);
+
+    if (key === "income" || key === "saving") {
+      const score = getScoreFromManualInput(text, key);
+      const updatedAnswers = [...answers];
+      updatedAnswers[currentIndex] = score;
+      setAnswers(updatedAnswers);
+    } else {
+      // For non-scoring manual inputs, set a default score
+      const updatedAnswers = [...answers];
+      updatedAnswers[currentIndex] = text.trim() ? 1 : 0;
+      setAnswers(updatedAnswers);
+    }
   };
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressText}>
+          Level {currentLevel} - Question {currentIndex + 1} of {currentQuestions.length}
+        </Text>
+        <View style={styles.progressBar}>
+          <View 
+            style={[
+              styles.progressFill, 
+              { width: `${((currentIndex + 1) / currentQuestions.length) * 100}%` }
+            ]} 
+          />
+        </View>
+      </View>
+
       <Text style={styles.category}>{currentQuestion.category}</Text>
       <Text style={styles.question}>{currentQuestion.question}</Text>
 
       <View style={styles.options}>
-        {currentQuestion.manualInput ? (
+        {isManualInputQuestion(currentQuestion) ? (
           <>
             <TextInput
-              keyboardType="numeric"
-              placeholder={`Enter your ${currentQuestion.category.toLowerCase()} in ₹`}
-              value={inputData[currentQuestion.key]}
-              onChangeText={(text) => {
-                setInputData({ ...inputData, [currentQuestion.key]: text });
-                const score = getScoreFromManualInput(
-                  text,
-                  currentQuestion.key
-                );
-                const updatedAnswers = [...answers];
-                updatedAnswers[currentIndex] = score;
-                setAnswers(updatedAnswers);
-              }}
-              style={styles.inputBox}
+              keyboardType={currentQuestion.key === "profileHealthSummary" ? "default" : "numeric"}
+              placeholder={
+                currentQuestion.key === "profileHealthSummary" 
+                  ? "Enter your financial health summary"
+                  : `Enter your ${currentQuestion.category.toLowerCase()}${
+                      currentQuestion.key === "income" || currentQuestion.key === "saving" || 
+                      currentQuestion.key === "goalCostToday" ? " in ₹" : ""
+                    }`
+              }
+              value={inputData[currentQuestion.key as keyof typeof inputData]}
+              onChangeText={(text) => handleManualInputChange(text, currentQuestion.key!)}
+              style={[
+                styles.inputBox,
+                currentQuestion.key === "profileHealthSummary" && styles.textAreaInput
+              ]}
               placeholderTextColor="#999"
+              multiline={currentQuestion.key === "profileHealthSummary"}
+              numberOfLines={currentQuestion.key === "profileHealthSummary" ? 4 : 1}
             />
-
-            {/* If question is saving and computedOptions available */}
-            {currentQuestion.key === "saving" &&
-              computedOptions.map((opt, i) => {
-                const selected = answers[currentIndex] === opt.score;
-                return (
-                  <TouchableOpacity
-                    key={i}
-                    onPress={() => {
-                      // Determine value to autofill from label range
-                      let selectedValue = "0";
-                      const digits = opt.label.match(/\d+/g);
-                      if (digits) {
-                        selectedValue = digits[0]; // use first number found
-                      }
-
-                      const updatedAnswers = [...answers];
-                      updatedAnswers[currentIndex] = opt.score;
-                      setAnswers(updatedAnswers);
-
-                      setInputData({ ...inputData, saving: selectedValue });
-                    }}
-                    style={[
-                      styles.optionButton,
-                      selected && styles.selectedOption,
-                    ]}
-                  >
-                    <Text
-                      style={[
-                        styles.optionText,
-                        selected && styles.selectedText,
-                      ]}
-                    >
-                      {opt.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
           </>
         ) : (
-          currentQuestion.options?.map((option, i) => {
-            const selected = answers[currentIndex] === option.score;
+          currentQuestion.options?.map((option) => {
+            const selected = selectedAnswers[currentIndex] === option.label;
             return (
               <TouchableOpacity
-                key={i}
-                onPress={() => handleOptionSelect(option.score)}
-                style={[styles.optionButton, selected && styles.selectedOption]}
+                key={option.id}
+                onPress={() => handleOptionSelect(option.score || 0, option.label)}
+                style={[
+                  styles.optionButton,
+                  selected && styles.selectedOption,
+                ]}
               >
                 <Text
                   style={[styles.optionText, selected && styles.selectedText]}
@@ -253,14 +266,19 @@ export default function QuizScreen() {
       </View>
 
       <TouchableOpacity
-        style={styles.nextButton}
+        style={[
+          styles.nextButton,
+          !selectedAnswers[currentIndex] && styles.disabledButton
+        ]}
         onPress={
-          currentIndex < questions.length - 1 ? handleNext : handleSubmit
+          currentIndex < currentQuestions.length - 1
+            ? handleNext
+            : handleSubmit
         }
-        disabled={answers[currentIndex] == null}
+        disabled={!selectedAnswers[currentIndex]}
       >
         <Text style={styles.nextText}>
-          {currentIndex < questions.length - 1 ? "Next" : "Submit"}
+          {currentIndex < currentQuestions.length - 1 ? "Next" : "Submit"}
         </Text>
       </TouchableOpacity>
     </ScrollView>
@@ -274,6 +292,7 @@ const COLORS = {
   white: "#fff",
   gray: "#0A4174",
   background: "#F2F6FB",
+  disabled: "#ccc",
 };
 
 const styles = StyleSheet.create({
@@ -282,6 +301,27 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.background,
     flexGrow: 1,
     justifyContent: "center",
+  },
+  progressContainer: {
+    marginBottom: 24,
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: COLORS.gray,
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  progressBar: {
+    height: 4,
+    backgroundColor: COLORS.muted,
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  progressFill: {
+    height: "100%",
+    backgroundColor: COLORS.selected,
+    borderRadius: 2,
   },
   category: {
     fontSize: 15,
@@ -336,6 +376,9 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 8,
   },
+  disabledButton: {
+    backgroundColor: COLORS.disabled,
+  },
   nextText: {
     color: "#fff",
     fontSize: 17,
@@ -351,14 +394,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     color: COLORS.primary,
   },
-  hintBox: {
-    backgroundColor: "#E6EDF7",
-    padding: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-  },
-  hintText: {
-    fontSize: 16,
-    color: COLORS.gray,
+  textAreaInput: {
+    height: 100,
+    textAlignVertical: "top",
   },
 });

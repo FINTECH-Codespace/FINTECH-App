@@ -7,6 +7,7 @@ import json
 import os
 from pathlib import Path
 from datetime import timedelta, datetime
+
 from dotenv import load_dotenv
 from nsepython import nse_eq  # Library for fetching data from the National Stock Exchange (NSE)
 import requests
@@ -196,6 +197,7 @@ def home_loan_rates(request):
     file_path = "C:\\Users\\Hp\\Downloads\\home_loan_interest_history.xlsx"
     data = get_home_loans_data(file_path)
     return JsonResponse(data, safe=False)
+
 HEADERS = {
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
     "Accept": "application/json, text/javascript, */*; q=0.01",
@@ -207,8 +209,31 @@ HEADERS = {
 def search_stock(request):
     """
     Handles stock search using NSE India's autocomplete API.
-    """
+    
+    Workflow:
+    1. Get the search query from the request (parameter `q`).
+    2. If query is empty, return an empty JSON response.
+    3. Make a session request to NSE India homepage to initialize cookies (required by NSE API).
+    4. Call NSE's autocomplete API: https://www.nseindia.com/api/search/autocomplete?q=<query>.
+    5. Extract relevant fields (symbol and name) from the response.
+    6. Return a JSON array of matching stocks.
 
+    Request:
+        GET /search_stock?q=<search_text>
+
+    Query Parameters:
+        q (string): Stock symbol or company name to search for.
+
+    Response:
+        JSON array of objects:
+        [
+            {
+                "symbol": "RELIANCE",
+                "name": "Reliance Industries Limited"
+            },
+            ...
+        ]
+    """
     query = request.GET.get("q", "").strip()
     if not query:
         return JsonResponse([], safe=False)
@@ -248,7 +273,6 @@ def search_stock(request):
 
     except requests.exceptions.RequestException as e:
         return JsonResponse({"error": f"Request failed: {str(e)}"}, status=500)
-
 
 
 
