@@ -15,6 +15,13 @@ from pathlib import Path
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# MongoDB import
+try:
+    import mongoengine
+    MONGODB_AVAILABLE = True
+except ImportError:
+    MONGODB_AVAILABLE = False
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
@@ -27,6 +34,10 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# CORS settings for React Native frontend
+CORS_ALLOW_ALL_ORIGINS = True
+CORS_ALLOW_CREDENTIALS = True
+
 
 # Application definition
 
@@ -37,11 +48,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',  # Add CORS headers
     'base.apps.BaseConfig',
     'user',
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',  # Add CORS middleware at the top
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -85,15 +98,16 @@ DATABASES = {
 }
 
 # MongoDB Configuration using MongoEngine
-import mongoengine
-
-# Connect to MongoDB
-mongoengine.connect(
-    db='fintech_db',
-    host='mongodb://localhost:27017/'
-    # For MongoDB Atlas (cloud), use:
-    # host='mongodb+srv://username:password@cluster.mongodb.net/fintech_db?retryWrites=true&w=majority'
-)
+if MONGODB_AVAILABLE:
+    # Connect to MongoDB
+    mongoengine.connect(
+        db='fintech_db',
+        host='mongodb://localhost:27017/'
+        # For MongoDB Atlas (cloud), use:
+        # host='mongodb+srv://username:password@cluster.mongodb.net/fintech_db?retryWrites=true&w=majority'
+    )
+else:
+    print("Warning: mongoengine not available. MongoDB features will be disabled.")
 
 
 # Password validation
