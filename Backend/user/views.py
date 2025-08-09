@@ -1,3 +1,4 @@
+
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -5,6 +6,8 @@ from django.views.decorators.http import require_http_methods
 from .mongo_models import User
 from datetime import datetime
 import json
+import jwt
+from django.conf import settings
 
 @csrf_exempt
 @require_http_methods(["POST"])
@@ -28,16 +31,25 @@ def login(request):
         # Find user in MongoDB
         try:
             user = User.objects.get(username=username)
-            
             # Check password
             if user.check_password(password):
                 # Update last login
                 user.last_login = datetime.utcnow()
                 user.save()
-                
+
+                # JWT payload
+                payload = {
+                    'username': user.username,
+                    'id': str(user.id),
+                    'email': user.email,
+                    'exp': datetime.utcnow().timestamp() + 60*60*24*7  # 7 days expiry
+                }
+                token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
+
                 return JsonResponse({
                     'success': True,
                     'message': 'Login successful',
+                    'token': token,
                     'user_id': str(user.id),
                     'username': user.username,
                     'email': user.email
@@ -47,7 +59,6 @@ def login(request):
                     'success': False,
                     'message': 'Invalid username or password'
                 }, status=401)
-                
         except User.DoesNotExist:
             return JsonResponse({
                 'success': False,

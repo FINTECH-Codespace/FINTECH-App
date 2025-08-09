@@ -14,7 +14,7 @@ import requests
 from django.http import JsonResponse
 from .utils import get_home_loans_data
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv()
 # Instead of hardcoding them, they should be loaded from environment variables.
 # The os.getenv() function safely retrieves them. A default key can be provided for development.
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
