@@ -1,7 +1,7 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path,include
 from . import views
-# from . import user
+
 urlpatterns = [
     path('metal_price/',views.metal_price, name='metal_price'),
     path('top_stocks/',views.top_stocks, name='top_stocks'),

@@ -14,7 +14,7 @@ import requests
 from django.http import JsonResponse
 from .utils import get_home_loans_data
 BASE_DIR = Path(__file__).resolve().parent.parent
-load_dotenv(os.path.join(BASE_DIR, '.env'))
+load_dotenv()
 # Instead of hardcoding them, they should be loaded from environment variables.
 # The os.getenv() function safely retrieves them. A default key can be provided for development.
 FINNHUB_API_KEY = os.getenv('FINNHUB_API_KEY')
@@ -197,67 +197,82 @@ def home_loan_rates(request):
     file_path = "C:\\Users\\Hp\\Downloads\\home_loan_interest_history.xlsx"
     data = get_home_loans_data(file_path)
     return JsonResponse(data, safe=False)
+
 HEADERS = {
-    "User-Agent": "Mozilla/5.0",
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+    "Accept": "application/json, text/javascript, */*; q=0.01",
     "Accept-Language": "en-US,en;q=0.9",
-    "Accept-Encoding": "gzip, deflate, br"
+    "Referer": "https://www.nseindia.com/",
+    "Connection": "keep-alive",
 }
+
 def search_stock(request):
     """
-        Handles stock search using NSE India's autocomplete API.
+    Handles stock search using NSE India's autocomplete API.
+    
+    Workflow:
+    1. Get the search query from the request (parameter `q`).
+    2. If query is empty, return an empty JSON response.
+    3. Make a session request to NSE India homepage to initialize cookies (required by NSE API).
+    4. Call NSE's autocomplete API: https://www.nseindia.com/api/search/autocomplete?q=<query>.
+    5. Extract relevant fields (symbol and name) from the response.
+    6. Return a JSON array of matching stocks.
 
-        Workflow:
-        1. Get the search query from the request (parameter `q`).
-        2. If query is empty, return an empty JSON response.
-        3. Make a session request to NSE India homepage to initialize cookies (required by NSE API).
-        4. Call NSE's autocomplete API: https://www.nseindia.com/api/search/autocomplete?q=<query>.
-        5. Extract relevant fields (symbol and name) from the response.
-        6. Return a JSON array of matching stocks.
+    Request:
+        GET /search_stock?q=<search_text>
 
-        Request:
-            GET /search_stock?q=<search_text>
+    Query Parameters:
+        q (string): Stock symbol or company name to search for.
 
-        Query Parameters:
-            q (string): Stock symbol or company name to search for.
-
-        Response:
-            JSON array of objects:
-            [
-                {
-                    "symbol": "RELIANCE",
-                    "name": "Reliance Industries Limited"
-                },
-                ...
-            ]
-        Example:
-            Input:  /search_stock?q=reliance
-            Output:
-            [
-                {"symbol": "RELIANCE", "name": "Reliance Industries Limited"},
-                {"symbol": "RELINFRA", "name": "Reliance Infrastructure Limited"}
-            ]
-        Notes:
-            - NSE API requires valid headers and session.
-            - HEADERS variable should include 'User-Agent', 'Accept-Language', etc.
-            - If NSE API is down or response changes, handle gracefully.
-        """
-    query = request.GET.get("q", "")
+    Response:
+        JSON array of objects:
+        [
+            {
+                "symbol": "RELIANCE",
+                "name": "Reliance Industries Limited"
+            },
+            ...
+        ]
+    """
+    query = request.GET.get("q", "").strip()
     if not query:
         return JsonResponse([], safe=False)
+
     url = f"https://www.nseindia.com/api/search/autocomplete?q={query}"
     session = requests.Session()
-    session.get("https://www.nseindia.com", headers=HEADERS)
-    response = session.get(url, headers=HEADERS)
-    data = response.json()
-    results = [
-        {
-            "symbol": item.get("symbol"),
-            "name": item.get("name")
-        }
-        for item in data.get("symbols", [])
-        if item.get("symbol") and item.get("symbol") != "-"
-    ]
-    return JsonResponse(results, safe=False)
+    session.headers.update(HEADERS)
+
+    try:
+        # Initialize cookies by visiting NSE homepage
+        session.get("https://www.nseindia.com", timeout=10)
+
+        # Call the API
+        response = session.get(url, timeout=10)
+
+        # Debug logs
+        print("Status Code:", response.status_code)
+        print("Raw Response (first 300 chars):", response.text[:300])
+
+        # If response is not JSON, return error message
+        try:
+            data = response.json()
+        except ValueError:
+            return JsonResponse({"error": "Invalid response from NSE API"}, status=502)
+
+        # Extract symbols - handle possible changes in API response structure
+        symbols_list = data.get("symbols", data.get("data", []))
+
+        # Prepare results
+        results = [
+            {"symbol": item.get("symbol"), "name": item.get("name")}
+            for item in symbols_list
+            if item.get("symbol") and item.get("symbol") != "-"
+        ]
+
+        return JsonResponse(results, safe=False)
+
+    except requests.exceptions.RequestException as e:
+        return JsonResponse({"error": f"Request failed: {str(e)}"}, status=500)
 
 
 
